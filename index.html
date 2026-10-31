@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f7fb">
+  <title>Mark 工具箱</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #20233a;
+      --muted: #85889c;
+      --brand: #6558e8;
+      --brand-dark: #5145d2;
+      --paper: #fff;
+      --canvas: #f6f7fb;
+      --line: #ececf3;
+      --shadow: 0 16px 46px #27234b12;
+      --ease-out: cubic-bezier(.2, .75, .25, 1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font: 15px/1.6 "Segoe UI", "Microsoft YaHei", sans-serif;
+      transition: background-color .35s var(--ease-out), color .35s var(--ease-out);
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    .app { min-height: 100vh; }
+    .topbar {
+      height: 72px;
+      padding: 0 clamp(18px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #ffffffeb;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      backdrop-filter: blur(14px);
+      transition: background .35s, border-color .35s, box-shadow .35s;
+    }
+    .brand { display: flex; align-items: center; gap: 11px; font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+    .brand-mark {
+      width: 38px; height: 38px; display: grid; place-items: center;
+      color: white; border-radius: 13px;
+      background: linear-gradient(140deg, #8277ff, #5549db);
+      box-shadow: 0 7px 18px #6558e844; font-size: 21px;
+    }
+    .top-actions { display: flex; align-items: center; gap: 11px; }
+    .pill { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 8px 14px; color: #565970; transition: background .25s, border-color .25s, color .25s, transform .25s var(--ease-out), box-shadow .25s; }
+    .pill:hover { transform: translateY(-1px); box-shadow: 0 5px 15px #302c5e12; }
+    .glass-toggle[aria-pressed="true"] { color: var(--brand); border-color: #bdb7ff; background: #f2f0ff; }
+    .wrap { max-width: 1280px; margin: auto; padding: 34px 26px 72px; }
+    .hero {
+      min-height: 250px; overflow: hidden; position: relative; border-radius: 27px;
+      padding: 37px clamp(24px, 5vw, 62px); color: white;
+      background: linear-gradient(112deg, #5448d7, #7669f4 62%, #9a8bff);
+      box-shadow: 0 18px 40px #5448d72b;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: box-shadow .35s, border-color .35s, transform .35s var(--ease-out);
+    }
+    .hero::after {
+      content: ""; position: absolute; width: 340px; height: 340px; border-radius: 50%;
+      right: 7%; top: -165px; border: 1px solid #ffffff2c;
+      box-shadow: 0 0 0 32px #ffffff0b, 0 0 0 67px #ffffff0a, 0 0 0 105px #ffffff09;
+    }
+    .hero-copy { position: relative; z-index: 1; max-width: 620px; }
+    .eyebrow { font-size: 12px; font-weight: 700; opacity: .8; letter-spacing: 2px; }
+    h1 { font-size: clamp(31px, 5vw, 47px); line-height: 1.2; margin: 10px 0 12px; letter-spacing: -1.5px; }
+    .hero p { margin: 0; color: #eeedff; font-size: 16px; }
+    .hero-count { position: relative; z-index: 1; display: flex; gap: 34px; margin-right: 5%; }
+    .hero-count strong { display: block; font-size: 35px; line-height: 1.2; }
+    .hero-count span { color: #e7e4ff; font-size: 13px; }
+    .search-wrap { position: relative; margin: -29px auto 28px; max-width: 720px; z-index: 2; }
+    .search {
+      width: 100%; height: 58px; border: 1px solid #eeeef5; border-radius: 17px;
+      padding: 0 20px 0 54px; outline: 0; background: white; box-shadow: var(--shadow);
+      color: var(--ink); font-size: 15px;
+      transition: background .3s, border-color .3s, box-shadow .3s, transform .3s var(--ease-out);
+    }
+    .search:focus { border-color: #b7b0ff; box-shadow: 0 0 0 4px #6558e817, var(--shadow); }
+    .search-icon { position: absolute; left: 20px; top: 15px; color: #9395aa; font-size: 21px; }
+    .tabs { display: flex; gap: 10px; align-items: center; margin: 0 0 19px; flex-wrap: wrap; }
+    .tab {
+      border: 1px solid transparent; background: transparent; color: #777a90;
+      border-radius: 11px; padding: 9px 16px; font-weight: 650;
+      transition: background .25s, border-color .25s, color .25s, box-shadow .25s, transform .25s var(--ease-out);
+    }
+    .tab:hover { transform: translateY(-1px); }
+    .tab.active { background: white; color: var(--brand); border-color: var(--line); box-shadow: 0 4px 12px #28234a08; }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 30px 0 16px; }
+    .section-head h2 { margin: 0; font-size: 21px; letter-spacing: -.4px; }
+    .section-head p { color: var(--muted); margin: 3px 0 0; font-size: 13px; }
+    .category-row { display: flex; gap: 8px; overflow-x: auto; padding: 2px 1px 9px; scrollbar-width: thin; }
+    .category {
+      white-space: nowrap; border: 1px solid var(--line); background: #fff; color: #686b81;
+      border-radius: 10px; padding: 7px 12px; font-size: 13px;
+      transition: background .25s, border-color .25s, color .25s, transform .25s var(--ease-out), box-shadow .25s;
+    }
+    .category:hover { transform: translateY(-1px); }
+    .category.active { border-color: #d7d3ff; color: var(--brand); background: #f2f0ff; }
+    .grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px; }
+    .card {
+      position: relative; min-height: 125px; padding: 17px 16px 14px;
+      background: var(--paper); border: 1px solid #efeff5; border-radius: 15px;
+      text-align: left; color: inherit; transition: transform .24s var(--ease-out), box-shadow .24s, border-color .24s, background .3s;
+      animation: card-enter .4s var(--ease-out) both;
+    }
+    .card:hover { transform: translateY(-3px) scale(1.012); border-color: #dedbff; box-shadow: 0 12px 25px #302c5e0d; }
+    .card-top { display: flex; align-items: center; gap: 11px; padding-right: 22px; }
+    .icon {
+      width: 40px; height: 40px; flex: 0 0 40px; border-radius: 13px;
+      display: grid; place-items: center; font-size: 21px;
+    }
+    .card h3 { margin: 0; font-size: 14px; font-weight: 700; line-height: 1.35; }
+    .card p { font-size: 12px; color: var(--muted); margin: 11px 0 0; }
+    .favorite {
+      position: absolute; right: 12px; top: 12px; border: 0; background: transparent;
+      color: #c3c4d1; padding: 3px; font-size: 18px; line-height: 1;
+      transition: color .2s, transform .2s var(--ease-out);
+    }
+    .favorite:hover { transform: scale(1.2); }
+    .favorite.on { color: #f2ad3e; }
+    .empty { grid-column: 1/-1; text-align: center; padding: 55px 15px; color: var(--muted); background: white; border: 1px dashed #dedee9; border-radius: 16px; }
+    .load-more { display: block; margin: 23px auto 0; border: 1px solid var(--line); background: white; color: #666980; border-radius: 11px; padding: 10px 20px; transition: transform .22s var(--ease-out), box-shadow .22s, background .25s; }
+    .load-more:hover { transform: translateY(-2px); box-shadow: 0 7px 18px #302c5e12; }
+    .footer { margin-top: 55px; border-top: 1px solid var(--line); padding: 23px 4px 0; color: #999bad; display: flex; justify-content: space-between; gap: 15px; font-size: 12px; }
+    .overlay { position: fixed; inset: 0; z-index: 5; padding: 20px; display: none; place-items: center; background: #17172a80; backdrop-filter: blur(4px); }
+    .overlay.show { display: grid; animation: overlay-enter .2s ease-out both; }
+    .dialog { width: min(540px, 100%); max-height: 90vh; overflow: auto; background: white; border-radius: 20px; padding: 24px; box-shadow: 0 25px 90px #17172a40; animation: dialog-enter .32s var(--ease-out) both; transition: background .3s, border-color .3s, box-shadow .3s; }
+    .dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+    .dialog-title { display: flex; align-items: center; gap: 12px; }
+    .dialog-title .icon { width: 46px; height: 46px; flex-basis: 46px; }
+    .dialog h2 { margin: 0; font-size: 20px; }
+    .dialog-sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+    .close { border: 0; border-radius: 9px; background: #f5f5f9; color: #77798b; width: 34px; height: 34px; font-size: 20px; }
+    .dialog-body { margin-top: 22px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; margin-bottom: 6px; color: #5e6074; font-size: 13px; font-weight: 650; }
+    .field input, .field textarea, .field select {
+      width: 100%; border: 1px solid #e6e6ef; border-radius: 10px; outline: none;
+      padding: 11px 12px; background: white; color: var(--ink);
+    }
+    .field textarea { min-height: 110px; resize: vertical; }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: #a9a2ff; box-shadow: 0 0 0 3px #6558e817; }
+    .primary, .secondary {
+      border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700;
+    }
+    .primary { background: var(--brand); color: white; }
+    .primary:hover { background: var(--brand-dark); }
+    .secondary { background: #f1f0ff; color: var(--brand); }
+    .result { margin-top: 15px; border-radius: 11px; padding: 13px 15px; background: #f5f4ff; color: #433ba8; overflow-wrap: anywhere; white-space: pre-wrap; }
+    .result:empty { display: none; }
+    .game-board { margin: 17px 0; border-radius: 13px; padding: 18px; background: #f7f7fc; text-align: center; }
+    .game-display { font-size: 17px; font-weight: 700; min-height: 34px; }
+    .game-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; margin-top: 13px; }
+    .game-actions button { min-width: 58px; border: 1px solid #e2e1f3; color: #494477; background: white; border-radius: 9px; padding: 8px 12px; }
+    .game-actions button:hover { border-color: #aaa4ff; background: #f5f3ff; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 15px); opacity: 0; pointer-events: none; z-index: 8; background: #29283a; color: white; padding: 9px 15px; border-radius: 10px; transition: .2s; }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    button:focus-visible, .card:focus-visible { outline: 3px solid #8a81ff; outline-offset: 3px; }
+    @keyframes card-enter { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes overlay-enter { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes dialog-enter { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+    body.glass-mode {
+      background:
+        radial-gradient(ellipse at 9% 12%, #dcd7ff99, transparent 37%),
+        radial-gradient(ellipse at 91% 34%, #d6efff99, transparent 34%),
+        radial-gradient(ellipse at 48% 90%, #f8e4f399, transparent 38%),
+        #f4f5fb;
+    }
+    .glass-mode .topbar,
+    .glass-mode .pill,
+    .glass-mode .search,
+    .glass-mode .tab.active,
+    .glass-mode .category,
+    .glass-mode .card,
+    .glass-mode .load-more,
+    .glass-mode .dialog,
+    .glass-mode .field input,
+    .glass-mode .field textarea,
+    .glass-mode .field select,
+    .glass-mode .game-actions button,
+    .glass-mode .game-board {
+      background-color: #ffffff9e;
+      border-color: #ffffffbd;
+      backdrop-filter: blur(20px) saturate(155%);
+      -webkit-backdrop-filter: blur(20px) saturate(155%);
+    }
+    .glass-mode .topbar { box-shadow: 0 4px 28px #38345d0b; }
+    .glass-mode .search { box-shadow: 0 12px 38px #39335f14, inset 0 1px #ffffffd9; }
+    .glass-mode .card { box-shadow: 0 7px 24px #38345d0a, inset 0 1px #ffffffd9; }
+    .glass-mode .card:hover { box-shadow: 0 14px 32px #38345d17, inset 0 1px #ffffff; }
+    .glass-mode .tab.active, .glass-mode .category.active { background-color: #eeecffb8; }
+    .glass-mode .dialog { box-shadow: 0 25px 90px #17172a30, inset 0 1px #ffffff; }
+    .glass-mode .hero { border: 1px solid #ffffff55; box-shadow: 0 22px 50px #5448d738, inset 0 1px #ffffff55; }
+    .glass-mode .glass-toggle[aria-pressed="true"] { background: #eeecffbf; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+    html { scroll-behavior: smooth; }
+    @media (max-width: 1000px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    @media (max-width: 760px) {
+      .hero { min-height: 230px; }
+      .hero-count { gap: 19px; margin-right: 0; }
+      .hero-count strong { font-size: 27px; }
+      .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+    @media (max-width: 560px) {
+      .topbar { height: 62px; padding: 0 16px; }
+      .brand { font-size: 18px; }
+      .top-actions .pill { padding: 6px 10px; font-size: 12px; }
+      .glass-label { display: none; }
+      .wrap { padding: 20px 14px 50px; }
+      .hero { min-height: 220px; padding: 27px 22px; align-items: flex-start; flex-direction: column; justify-content: center; gap: 22px; }
+      .hero-count { gap: 25px; }
+      .hero-count strong { font-size: 24px; }
+      .search-wrap { margin-top: -22px; }
+      .search { height: 52px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+      .card { min-height: 119px; padding: 13px 11px 11px; }
+      .card-top { gap: 8px; }
+      .icon { width: 35px; height: 35px; flex-basis: 35px; border-radius: 11px; font-size: 19px; }
+      .card h3 { font-size: 13px; }
+      .card p { margin-top: 8px; font-size: 11px; }
+      .section-head { align-items: flex-start; flex-direction: column; gap: 3px; }
+      .footer { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">M</span><span>Mark 工具箱</span></div>
+      <div class="top-actions">
+        <button class="pill glass-toggle" id="glassToggle" type="button" aria-pressed="false" aria-label="切换液态玻璃效果" title="切换液态玻璃效果"><span aria-hidden="true">◈</span><span class="glass-label">液态玻璃</span></button>
+        <button class="pill" id="favoritesShortcut">☆ 我的收藏 <span id="favoriteCount">0</span></button>
+      </div>
+    </header>
+    <main class="wrap">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">MARK'S EVERYDAY TOOLKIT</div>
+          <h1>让生活小事，简单一点</h1>
+          <p>常用工具、灵感小游戏，都在这里轻松找到。</p>
+        </div>
+        <div class="hero-count">
+          <div><strong>200</strong><span>生活便利工具</span></div>
+          <div><strong>100</strong><span>休闲小游戏</span></div>
+        </div>
+      </section>
+      <div class="search-wrap">
+        <span class="search-icon">⌕</span>
+        <input class="search" id="search" type="search" placeholder="搜索工具或小游戏，例如：日期、记账、猜数字" autocomplete="off">
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-mode="tools">✨ 生活工具 <span>200</span></button>
+        <button class="tab" data-mode="games">🎮 小游戏 <span>100</span></button>
+      </div>
+      <div class="section-head">
+        <div><h2 id="sectionTitle">生活便利工具</h2><p id="sectionDesc">挑一个顺手的小工具，马上开始</p></div>
+        <div id="resultCount" aria-live="polite"></div>
+      </div>
+      <nav class="category-row" id="categories" aria-label="工具分类"></nav>
+      <section class="grid" id="grid" aria-live="polite"></section>
+      <button class="load-more" id="loadMore" hidden>显示更多</button>
+      <footer class="footer"><span>Mark 工具箱 · 给日常一点小小的效率加成</span><span>所有数据仅保存在当前浏览器</span></footer>
+    </main>
+  </div>
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="dialogTitle">
+    <section class="dialog">
+      <header class="dialog-head">
+        <div class="dialog-title">
+          <span class="icon" id="dialogIcon"></span>
+          <div><h2 id="dialogTitle"></h2><p class="dialog-sub" id="dialogSub"></p></div>
+        </div>
+        <button class="close" id="closeDialog" aria-label="关闭">×</button>
+      </header>
+      <div class="dialog-body" id="dialogBody"></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script>
+    const toolGroups = [
+      ["计算换算", "🧮", "#eeedff", ["基础四则计算","小费计算器","多人平分计算","折后价格计算","消费税计算","百分比计算器","平均数计算器","数字序列统计","数字取整工具","比例分配计算"]],
+      ["日期时间", "🗓️", "#e7f4ff", ["日期间隔计算","重要日倒数","星期查询","年度周数查询","年龄计算器","时间戳转换","世界时区查询","工作日计算","月历查询","日程冲突检查"]],
+      ["文字处理", "📝", "#fff1e8", ["中英文字符统计","大小写转换","重复行清理","多余空格清理","文本倒序工具","文本行排序","关键词查找","中英文标点整理","批量文本替换","段落格式整理"]],
+      ["单位换算", "📐", "#e9f8ef", ["长度单位换算","重量单位换算","温度单位换算","面积单位换算","体积单位换算","速度单位换算","数据容量换算","压力单位换算","能量单位换算","纸张规格查询"]],
+      ["随机灵感", "🎲", "#fff4d9", ["随机整数生成","抛硬币","掷骰子","候选项随机选择","午餐菜单灵感","随机口令生成","随机小组分配","幸运数字生成","是或否选择器","随机字母抽取"]],
+      ["健康生活", "💚", "#e5f7ef", ["BMI 计算器","基础代谢估算","每日饮水计划","步行热量估算","睡眠周期规划","健康习惯打卡","身体测量记录","常见食物热量查询","呼吸放松练习","护眼休息提醒"]],
+      ["厨房美食", "🍳", "#fff0e7", ["食谱份量缩放","烹饪计时器","食材比例换算","厨房容量单位换算","饮品配方比例","食材保质期记录","每周菜单规划","冰箱库存管理","聚餐备菜估算","烘焙配方缩放"]],
+      ["理财记账", "💰", "#fff4d9", ["储蓄目标规划","月度预算分配","共同支出分摊","复利收益估算","简单利息估算","贷款月供估算","购物总价计算","月度支出分类","订阅费用统计","紧急备用金规划"]],
+      ["居家生活", "🏠", "#f0edff", ["墙面用漆估算","收纳空间规划","家务轮值安排","搬家打包规划","家庭物品盘点","家电电费估算","家具尺寸备忘","室内植物浇水记录","物品借还记录","家电维护周期"]],
+      ["学习成长", "📚", "#eaf3ff", ["番茄专注钟","学习时长统计","间隔复习规划","拼写自测卡","考试成绩计算","错题归档卡","阅读速度估算","课程表备忘","概念卡片制作","课程完成进度"]],
+      ["效率规划", "✅", "#e9f8ef", ["任务看板","每日行程安排","优先级矩阵","目标里程碑规划","会议议程模板","时间块规划","每周复盘模板","项目进度看板","流程步骤整理","决策对比表"]],
+      ["出行旅行", "🧳", "#e8f4ff", ["旅行行程规划","行程路程记录","行李重量估算","旅行时差查询","交通费用估算","签证到期提醒","酒店入住备忘","旅途花费记录","自驾油费估算","旅行物品清点"]],
+      ["数码小帮手", "💻", "#eeedff", ["密码强度检查","二维码内容生成","屏幕分辨率查询","文件大小换算","下载耗时估算","网址编码转换","文本编码转换","设备参数记录","浏览器信息查看","常见文件扩展名查询"]],
+      ["写作创意", "✍️", "#fff0e7", ["文章标题灵感","限时写作题目","故事开头生成","品牌名称灵感","祝福语草稿","会议纪要整理","商务邮件草稿","摘录句子整理","表达措辞替换","头脑风暴记录"]],
+      ["颜色设计", "🎨", "#ffeaf1", ["主题色板生成","颜色预览器","HEX 转 RGB","RGB 转 HEX","渐变色生成","文字对比度检查","色彩明暗调整","配色方案收藏","色盲友好配色提示","背景色预览"]],
+      ["购物比价", "🛍️", "#fff4d9", ["商品单价比较","优惠券有效期记录","商品保修到期提醒","网购尺码备忘","商品生命周期成本","价格变动记录","退换货期限提醒","商品规格对照","购物计划排期","现金返利估算"]],
+      ["环保生活", "🌿", "#e9f8ef", ["骑行时间估算","公交出行费用比较","汽车油耗计算","居家碳排估算","家庭用水记录","家电能耗比较","垃圾分类查询","可重复用品追踪","低碳目标规划","阳台种植记录"]],
+      ["社交聚会", "🎉", "#ffeaf1", ["聚会座位安排","礼物预算规划","活动流程排期","破冰话题卡","生日提醒卡","活动报名统计","聚会投票统计","访客接待安排","桌游计分板","聚会音乐清单"]],
+      ["生活档案", "📌", "#fff3e7", ["心情变化记录","个人愿望板","阅读摘录归档","观影待看清单","紧急联系人卡","植物生长档案","宠物喂养日志","旅行纪念时间线","家庭设备档案","重要资料索引"]],
+      ["实用小助手", "🪄", "#eeedff", ["秒表","倒计时器","日期转中文格式","中文数字转换","文本阅读时长估算","网页文本清理","表情符号查找","网址安全提示","日历周视图","每日灵感卡"]]
+    ];
+    const gameGroups = [
+      ["数字挑战","🎯", "#eeedff", ["猜数字","数字接龙","快速心算","数字记忆","猜高低","幸运数字挑战","目标数挑战","算式闯关","数字排序","十秒估算"]],
+      ["反应训练","⚡", "#fff4d9", ["反应力测试","颜色反应","快速点击","停止计时挑战","眼疾手快","灯光反应","快手挑战","专注力点击","节奏点击","瞬间判断"]],
+      ["经典对战","✊", "#ffeaf1", ["石头剪刀布","硬币猜正反","骰子比大小","幸运抽签对决","奇偶猜猜看","高牌挑战","最佳三局","猜拳连胜","单轮幸运赛","随机对决"]],
+      ["记忆游戏","🧠", "#eaf3ff", ["记忆翻牌","数字序列记忆","颜色序列","图标记忆","位置记忆","快速观察","记忆力挑战","顺序复现","图案观察","短时记忆"]],
+      ["棋盘益智","♟️", "#e9f8ef", ["井字棋","四子连线挑战","迷你五子棋","棋盘找空位","连线挑战","三步策略","棋子记忆","方格计数","棋盘反应","落子小游戏"]],
+      ["文字趣玩","🔤", "#fff0e7", ["打字速度挑战","词语接龙","字母排序","快速拼词","成语接龙提示","反向拼写","找不同字","限时造词","文字记忆","看词猜字"]],
+      ["轻松运气","🍀", "#e9f8ef", ["今日幸运签","幸运转盘","抽一张牌","骰子冒险","彩球抽奖","幸运数字盘","宝箱猜猜看","转盘决策","每日运势签","盲选挑战"]],
+      ["趣味问答","💡", "#fff4d9", ["常识快问快答","数学快答","颜色小测验","记忆问答","生活知识挑战","真假判断","快速选择题","脑筋急转弯","知识闪答","限时问答"]],
+      ["专注挑战","⏱️", "#e8f4ff", ["番茄专注挑战","一分钟专注","呼吸节奏小游戏","静止挑战","专注倒计时","节奏跟随","数字搜索","保持平衡挑战","观察力计时","安静一分钟"]],
+      ["创意小游戏","✨", "#ffeaf1", ["故事接龙","随机灵感挑战","画画主题抽签","今日创意题","三词编故事","随机角色扮演","猜谜小挑战","快速联想","脑洞接龙","创意抽卡"]]
+    ];
+    const toolColors = ["#eeedff","#e7f4ff","#e9f8ef","#fff1e8","#fff4d9","#ffeaf1"];
+    const toolIcons = ["🧮","🗓️","📝","📐","🎲","💚","🍳","💰","🏠","📚","✅","🧳","💻","✍️","🎨","🛍️","🌿","🎉","📌","🪄"];
+    const tools = toolGroups.flatMap((group, category) => group[3].map((name, index) => ({
+      id: `tool-${category}-${index}`, name, category: group[0], icon: group[1],
+      color: toolColors[category % toolColors.length],
+      kind: category,
+      desc: toolDescription(category, index)
+    })));
+    const games = gameGroups.flatMap((group, category) => group[3].map((name, index) => ({
+      id: `game-${category}-${index}`, name, category: group[0], icon: group[1],
+      color: group[2], kind: category, variant: index,
+      desc: gameDescription(category, index)
+    })));
+    function toolDescription(category, index) {
+      const name = toolGroups[category][3][index];
+      return `围绕「${name}」设计，输入相关信息即可使用`;
+    }
+    function gameDescription(category, index) {
+      return ["动动脑筋，挑战一下自己","看看你的反应有多快","简单规则，马上开玩","锻炼观察力和记忆力","来一局轻松的棋盘挑战","玩转文字与词语","试试今天的手气","短小有趣的问答挑战","给专注力来个小测试","用一点想象力轻松一下"][category] + (index ? " · 快速开局" : "");
+    }
+
+    const grid = document.getElementById("grid");
+    const categoriesEl = document.getElementById("categories");
+    const searchEl = document.getElementById("search");
+    const overlay = document.getElementById("overlay");
+    const dialogBody = document.getElementById("dialogBody");
+    const pageSize = 40;
+    let mode = "tools";
+    let activeCategory = "全部";
+    let visibleCount = pageSize;
+    let favoritesOnly = false;
+    let toastTimer;
+    let gameState = {};
+    let favorites = new Set(JSON.parse(localStorage.getItem("mark-toolbox-favorites") || "[]"));
+    const allCategories = {
+      tools: ["全部", ...toolGroups.map(group => group[0])],
+      games: ["全部", ...gameGroups.map(group => group[0])]
+    };
+    function currentItems() { return mode === "tools" ? tools : games; }
+    function renderCategories() {
+      categoriesEl.replaceChildren();
+      allCategories[mode].forEach(category => {
+        const button = document.createElement("button");
+        button.className = "category" + (activeCategory === category ? " active" : "");
+        button.textContent = category;
+        button.addEventListener("click", () => { activeCategory = category; visibleCount = pageSize; render(); });
+        categoriesEl.append(button);
+      });
+    }
+    function filteredItems() {
+      const query = searchEl.value.trim().toLowerCase();
+      return currentItems().filter(item => {
+        const matchesText = !query || `${item.name} ${item.category} ${item.desc}`.toLowerCase().includes(query);
+        const matchesCategory = activeCategory === "全部" || item.category === activeCategory;
+        return matchesText && matchesCategory && (!favoritesOnly || favorites.has(item.id));
+      });
+    }
+    function render() {
+      renderCategories();
+      const results = filteredItems();
+      const shown = results.slice(0, visibleCount);
+      grid.replaceChildren();
+      if (!shown.length) {
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = favoritesOnly ? "还没有收藏内容，点击卡片右上角的 ☆ 就能收藏。" : "没有找到匹配内容，换个关键词试试看。";
+        grid.append(empty);
+      } else {
+        shown.forEach((item, index) => {
+          const card = createCard(item);
+          card.style.animationDelay = `${Math.min(index, 15) * 22}ms`;
+          grid.append(card);
+        });
+      }
+      document.getElementById("resultCount").textContent = favoritesOnly ? `${results.length} 个收藏` : `共 ${results.length} 项`;
+      document.getElementById("loadMore").hidden = shown.length >= results.length;
+      document.getElementById("sectionTitle").textContent = favoritesOnly ? "我的收藏" : mode === "tools" ? "生活便利工具" : "轻松小游戏";
+      document.getElementById("sectionDesc").textContent = favoritesOnly ? "收藏的内容都在这里" : mode === "tools" ? "挑一个顺手的小工具，马上开始" : "休息一下，挑个小游戏放松片刻";
+      document.getElementById("favoriteCount").textContent = favorites.size;
+    }
+    function createCard(item) {
+      const card = document.createElement("article");
+      card.className = "card";
+      card.tabIndex = 0;
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `${item.name}，${mode === "tools" ? "打开工具" : "开始游戏"}`);
+      const top = document.createElement("div");
+      top.className = "card-top";
+      const icon = document.createElement("span");
+      icon.className = "icon";
+      icon.style.background = item.color;
+      icon.textContent = item.icon;
+      const title = document.createElement("h3");
+      title.textContent = item.name;
+      top.append(icon, title);
+      const desc = document.createElement("p");
+      desc.textContent = item.desc;
+      const star = document.createElement("button");
+      star.className = "favorite" + (favorites.has(item.id) ? " on" : "");
+      star.type = "button";
+      star.textContent = favorites.has(item.id) ? "★" : "☆";
+      star.setAttribute("aria-label", favorites.has(item.id) ? "取消收藏" : "收藏");
+      star.addEventListener("click", event => {
+        event.stopPropagation();
+        favorites.has(item.id) ? favorites.delete(item.id) : favorites.add(item.id);
+        localStorage.setItem("mark-toolbox-favorites", JSON.stringify([...favorites]));
+        render();
+      });
+      card.append(top, desc, star);
+      card.addEventListener("click", () => openItem(item));
+      card.addEventListener("keydown", event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openItem(item); } });
+      return card;
+    }
+    function openItem(item) {
+      document.getElementById("dialogIcon").textContent = item.icon;
+      document.getElementById("dialogIcon").style.background = item.color;
+      document.getElementById("dialogTitle").textContent = item.name;
+      document.getElementById("dialogSub").textContent = `${item.category} · ${mode === "tools" ? "生活工具" : "小游戏"}`;
+      dialogBody.replaceChildren();
+      gameState = {};
+      if (mode === "tools") renderTool(item);
+      else renderGame(item);
+      overlay.classList.add("show");
+      document.getElementById("closeDialog").focus();
+    }
+    function addField(parent, labelText, placeholder, type = "text", name = "value") {
+      const wrap = document.createElement("div");
+      wrap.className = "field";
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      const input = document.createElement(type === "textarea" ? "textarea" : "input");
+      input.name = name;
+      if (type !== "textarea") input.type = type;
+      input.placeholder = placeholder;
+      wrap.append(label, input);
+      parent.append(wrap);
+      return input;
+    }
+    function addResult(parent) {
+      const result = document.createElement("div");
+      result.className = "result";
+      result.setAttribute("aria-live", "polite");
+      parent.append(result);
+      return result;
+    }
+    function renderTool(item) {
+      const form = document.createElement("form");
+      form.addEventListener("submit", event => { event.preventDefault(); runTool(item, form, result); });
+      const result = addResult(form);
+      const button = document.createElement("button");
+      button.className = "primary";
+      button.type = "submit";
+      button.textContent = "开始使用";
+      const kind = item.kind;
+      let a, b;
+      if (kind === 0 || kind === 7 || kind === 15) {
+        a = addField(form, "金额 / 数值", "请输入数字", "number", "a");
+        b = addField(form, kind === 0 ? "人数 / 比例（可选）" : "补充数值（可选）", kind === 0 ? "例如：3" : "例如：20", "number", "b");
+      } else if (kind === 1) {
+        a = addField(form, "开始日期或时间", "选择日期", "date", "a");
+        b = addField(form, "结束日期", "选择日期", "date", "b");
+      } else if (kind === 2 || kind === 13 || kind === 18) {
+        a = addField(form, "输入内容", "输入或粘贴内容…", "textarea", "a");
+        b = addField(form, "查找 / 替换内容（可选）", "按需填写", "text", "b");
+      } else if (kind === 3 || kind === 14) {
+        a = addField(form, kind === 14 ? "颜色值（HEX）" : "数值", kind === 14 ? "#6558e8" : "例如：12", "text", "a");
+        b = addField(form, "单位或第二个数值（可选）", "例如：米 / 厘米", "text", "b");
+      } else if (kind === 4 || kind === 17 || kind === 19) {
+        a = addField(form, "可选：输入候选项，用逗号分隔", "例如：选项一，选项二，选项三", "text", "a");
+        b = addField(form, "数字范围上限（可选）", "例如：100", "number", "b");
+      } else if (kind === 5) {
+        a = addField(form, "身高（厘米）", "例如：170", "number", "a");
+        b = addField(form, "体重（公斤）", "例如：65", "number", "b");
+      } else if (kind === 6) {
+        a = addField(form, "原份量 / 数值", "例如：2", "number", "a");
+        b = addField(form, "目标份量 / 计时分钟", "例如：4", "number", "b");
+      } else if (kind === 9 || kind === 10 || kind === 11 || kind === 16) {
+        a = addField(form, "写下你要记录或规划的内容", "例如：本周要完成的事情…", "textarea", "a");
+      } else if (kind === 8) {
+        a = addField(form, "房间长 / 数值", "例如：4.5", "number", "a");
+        b = addField(form, "房间宽 / 数值", "例如：3.2", "number", "b");
+      } else if (kind === 12) {
+        a = addField(form, "输入内容或数值", "输入后生成本地结果…", "textarea", "a");
+      }
+      form.append(button);
+      dialogBody.append(form);
+      if (kind === 9 || kind === 10 || kind === 11 || kind === 16 || kind === 18) {
+        const saved = document.createElement("button");
+        saved.type = "button";
+        saved.className = "secondary";
+        saved.style.marginLeft = "8px";
+        saved.textContent = "保存到本机";
+        saved.addEventListener("click", () => {
+          const value = a.value.trim();
+          if (!value) { showToast("先写点内容再保存"); return; }
+          const key = `mark-notes-${item.id}`;
+          localStorage.setItem(key, value);
+          result.textContent = "已保存在当前浏览器。刷新页面后仍可使用这个工具查看。";
+          showToast("已保存");
+        });
+        form.append(saved);
+        const stored = localStorage.getItem(`mark-notes-${item.id}`);
+        if (stored) {
+          const note = document.createElement("p");
+          note.className = "dialog-sub";
+          note.textContent = `本机已保存：${stored.slice(0, 80)}${stored.length > 80 ? "…" : ""}`;
+          dialogBody.append(note);
+        }
+      }
+    }
+    function runTool(item, form, result) {
+      const data = new FormData(form);
+      const a = String(data.get("a") || "").trim();
+      const b = String(data.get("b") || "").trim();
+      const n = Number(a), m = Number(b);
+      let output = "";
+      switch (item.kind) {
+        case 0:
+        case 7:
+        case 15: {
+          if (!a || !Number.isFinite(n)) { output = "请输入有效的数字。"; break; }
+          const ratio = Number.isFinite(m) && m > 0 && m <= 100 ? m : 0;
+          if (/小费|小费|税额/.test(item.name)) output = `金额：${n.toFixed(2)}\n参考比例：${ratio || 10}%\n计算结果：${(n * (1 + (ratio || 10) / 100)).toFixed(2)}`;
+          else if (/AA|分摊|分账/.test(item.name)) output = `总金额 ${n.toFixed(2)} ÷ ${Math.max(1, Math.floor(m || 2))} 人 = ${(n / Math.max(1, Math.floor(m || 2))).toFixed(2)} / 人`;
+          else if (/折扣|满减/.test(item.name)) output = `原价：${n.toFixed(2)}\n优惠后：${(n * (1 - (ratio || 0) / 100)).toFixed(2)}\n省下：${(n * (ratio || 0) / 100).toFixed(2)}`;
+          else if (/百分比/.test(item.name)) output = `${n} 的 ${m || 10}% = ${(n * (m || 10) / 100).toFixed(2)}`;
+          else if (/平均/.test(item.name)) output = `数值：${n}\n${b ? `与 ${m} 的平均值：${((n + m) / 2).toFixed(2)}` : `四舍五入：${Math.round(n)}`}`;
+          else if (/利息|储蓄|分期/.test(item.name)) output = `按年利率 3% 简单估算：${(n * 0.03).toFixed(2)}\n总额约：${(n * 1.03).toFixed(2)}`;
+          else if (/预算|剩余|总价|消费|费用/.test(item.name)) output = `记录金额：${n.toFixed(2)}${b ? `\n对比数值：${m.toFixed(2)}\n差额：${(n - m).toFixed(2)}` : ""}`;
+          else if (/取整/.test(item.name)) output = `向下取整：${Math.floor(n)}\n四舍五入：${Math.round(n)}\n向上取整：${Math.ceil(n)}`;
+          else output = `${n} ${b ? `与 ${m} 的和：${n + m}\n差：${n - m}\n乘积：${n * m}` : `的平方：${n * n}\n的平方根：${n >= 0 ? Math.sqrt(n).toFixed(2) : "无实数结果"}`}`;
+          break;
+        }
+        case 1: {
+          if (!a) { output = "请选择开始日期。"; break; }
+          const start = new Date(a);
+          if (item.name.includes("时间戳")) output = `时间戳（毫秒）：${start.getTime()}\n本地时间：${start.toLocaleString("zh-CN")}`;
+          else if (item.name.includes("星期")) output = `${a} 是星期${"日一二三四五六"[start.getDay()]}`;
+          else if (item.name.includes("周数")) output = `所选日期：${a}\n星期${"日一二三四五六"[start.getDay()]}\n年内第 ${Math.ceil((start - new Date(start.getFullYear(), 0, 1)) / 86400000) + 1} 天`;
+          else if (b) output = `相差 ${Math.abs(Math.round((new Date(b) - start) / 86400000))} 天`;
+          else output = `距离今天 ${Math.ceil((start - new Date(new Date().toDateString())) / 86400000)} 天`;
+          break;
+        }
+        case 2:
+        case 13:
+        case 18: {
+          if (!a) { output = "请输入一些内容。"; break; }
+          if (/字数|统计/.test(item.name)) output = `字符数：${a.length}\n去除空格：${a.replace(/\s/g, "").length}\n中文字符：${(a.match(/[\u4e00-\u9fff]/g) || []).length}\n行数：${a.split(/\r?\n/).length}`;
+          else if (/去重/.test(item.name)) output = [...new Set(a.split(/\r?\n/))].join("\n");
+          else if (/倒序|反向/.test(item.name)) output = [...a].reverse().join("");
+          else if (/排序/.test(item.name)) output = a.split(/\r?\n/).sort((x, y) => x.localeCompare(y, "zh-CN")).join("\n");
+          else if (/空格|清理/.test(item.name)) output = a.replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+          else if (/大小写/.test(item.name)) output = `大写：${a.toUpperCase()}\n小写：${a.toLowerCase()}`;
+          else if (/查找/.test(item.name)) output = b ? `找到 ${a.split(b).length - 1} 处“${b}”。` : "请在第二个输入框填写要查找的内容。";
+          else if (/替换/.test(item.name)) output = b ? a.replaceAll(b, "（已替换）") : "请在第二个输入框填写要替换的内容。";
+          else output = `${a}\n\n共 ${a.length} 个字符`;
+          break;
+        }
+        case 3: {
+          if (!a) { output = "请输入需要换算的数值。"; break; }
+          const unit = b.toLowerCase();
+          if (/温度/.test(item.name)) output = `${n}°C = ${(n * 9 / 5 + 32).toFixed(2)}°F\n${n}°C = ${(n + 273.15).toFixed(2)}K`;
+          else if (/重量/.test(item.name)) output = `${n} 千克 = ${(n * 1000).toFixed(2)} 克 = ${(n * 2.20462).toFixed(2)} 磅`;
+          else if (/面积/.test(item.name)) output = `${n} 平方米 = ${(n * 10000).toFixed(2)} 平方厘米 = ${(n / 10000).toFixed(4)} 公顷`;
+          else if (/体积/.test(item.name)) output = `${n} 升 = ${(n * 1000).toFixed(2)} 毫升 = ${(n * 0.264172).toFixed(3)} 美制加仑`;
+          else if (/数据|文件/.test(item.name)) output = `${n} MB = ${(n * 1024).toFixed(2)} KB = ${(n / 1024).toFixed(4)} GB`;
+          else if (/速度|网络/.test(item.name)) output = `${n} km/h = ${(n / 3.6).toFixed(2)} m/s`;
+          else if (/RGB/.test(item.name) && /^#?[0-9a-f]{6}$/i.test(a)) { const hex = a.replace("#",""); output = `RGB(${parseInt(hex.slice(0,2),16)}, ${parseInt(hex.slice(2,4),16)}, ${parseInt(hex.slice(4,6),16)})`; }
+          else output = `${n} 米 = ${(n * 100).toFixed(2)} 厘米 = ${(n / 1000).toFixed(4)} 千米${unit ? `\n参考单位：${b}` : ""}`;
+          break;
+        }
+        case 4:
+        case 17:
+        case 19: {
+          if (/抛硬币|硬币/.test(item.name)) output = Math.random() < .5 ? "🪙 正面！" : "🪙 反面！";
+          else if (/骰子/.test(item.name)) output = `🎲 掷出 ${Math.floor(Math.random() * 6) + 1} 点！`;
+          else if (a) { const choices = a.split(/[,，、\n]/).map(s => s.trim()).filter(Boolean); output = choices.length ? `🎉 选中：${choices[Math.floor(Math.random() * choices.length)]}` : "请至少输入一个候选项。"; }
+          else output = `🎉 随机结果：${Math.floor(Math.random() * Math.max(2, Number(b) || 100)) + 1}`;
+          break;
+        }
+        case 5: {
+          if (!a || !b || n <= 0 || m <= 0) { output = "请输入有效的身高和体重。"; break; }
+          const bmi = m / ((n / 100) ** 2);
+          output = `BMI：${bmi.toFixed(1)}\n参考范围：${bmi < 18.5 ? "偏轻" : bmi < 24 ? "正常范围" : bmi < 28 ? "偏重" : "较高"}\n此结果仅供日常参考，不替代专业建议。`;
+          break;
+        }
+        case 6:
+          if (!a) output = "请输入份量或时间。";
+          else if (/计时/.test(item.name)) output = `建议计时 ${Math.max(1, Math.round(n))} 分钟。可使用设备自带计时器提醒。`;
+          else output = `${n} 份用量按比例换算：${m ? `${(n * m).toFixed(2)} 份` : `${(n * 2).toFixed(2)} 份（双倍）`}`;
+          break;
+        case 8:
+          output = a && b ? `面积约 ${Math.abs(n * m).toFixed(2)} 平方米` : "请填写长和宽。";
+          break;
+        case 9:
+        case 10:
+        case 11:
+        case 16:
+          output = a ? `已整理好：\n${a}` : "请先写下内容，再点击开始使用。";
+          break;
+        case 12:
+          output = a ? `已生成本地文本结果：\n${a}` : "请输入内容。";
+          break;
+        case 14: {
+          const hex = a.replace("#", "");
+          if (/^[0-9a-f]{6}$/i.test(hex)) output = `HEX：#${hex.toUpperCase()}\nRGB：${parseInt(hex.slice(0,2),16)}, ${parseInt(hex.slice(2,4),16)}, ${parseInt(hex.slice(4,6),16)}`;
+          else output = "请输入 6 位 HEX 颜色值，例如 #6558e8。";
+          break;
+        }
+        default: output = a || "请填写内容后再试。";
+      }
+      result.textContent = output;
+    }
+    function renderGame(item) {
+      const board = document.createElement("div");
+      board.className = "game-board";
+      const display = document.createElement("div");
+      display.className = "game-display";
+      const actions = document.createElement("div");
+      actions.className = "game-actions";
+      board.append(display, actions);
+      dialogBody.append(board);
+      const say = text => { display.textContent = text; };
+      const button = (label, fn) => {
+        const el = document.createElement("button");
+        el.textContent = label;
+        el.addEventListener("click", fn);
+        actions.append(el);
+      };
+      const reset = () => {
+        actions.replaceChildren();
+        gameState = {};
+        if (item.kind === 0) {
+          gameState.target = Math.floor(Math.random() * 20) + 1;
+          gameState.tries = 0;
+          say("我想好了 1 到 20 之间的数字，来猜猜看！");
+          [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].forEach(number => button(String(number), () => {
+            if (gameState.done) return;
+            gameState.tries++;
+            if (number === gameState.target) { gameState.done = true; say(`猜中了！答案是 ${number}，用了 ${gameState.tries} 次。`); }
+            else say(number < gameState.target ? `${number} 太小啦，再试试！` : `${number} 太大啦，再试试！`);
+          }));
+        } else if (item.kind === 1) {
+          say("准备好了吗？点击按钮开始反应力测试。");
+          button("开始测试", () => {
+            actions.replaceChildren();
+            say("等绿色出现时立刻点击…");
+            const delay = 1000 + Math.random() * 2500;
+            gameState.started = false;
+            gameState.timer = setTimeout(() => {
+              gameState.started = true;
+              gameState.startAt = performance.now();
+              board.style.background = "#dbf7e7";
+              button("现在点！", () => { if (gameState.started) { say(`你的反应时间：${Math.round(performance.now() - gameState.startAt)} 毫秒！`); gameState.started = false; } });
+            }, delay);
+          });
+        } else if (item.kind === 2 || item.kind === 6) {
+          say("选一个试试手气！");
+          ["石头","剪刀","布"].forEach(choice => button(choice, () => {
+            const choices = ["石头","剪刀","布"], computer = choices[Math.floor(Math.random()*3)];
+            const result = choice === computer ? "平局" : (choice === "石头" && computer === "剪刀" || choice === "剪刀" && computer === "布" || choice === "布" && computer === "石头") ? "你赢啦" : "电脑赢啦";
+            say(`你出 ${choice}，对方出 ${computer}。${result}！`);
+          }));
+          button("掷骰子", () => say(`🎲 你掷出 ${1 + Math.floor(Math.random()*6)} 点！`));
+        } else if (item.kind === 3) {
+          const sequence = Array.from({length: 5}, () => Math.floor(Math.random()*9)+1);
+          say(`记住这串数字：${sequence.join("  ")}`);
+          setTimeout(() => { if (overlay.classList.contains("show")) say("现在按从小到大的顺序点出这些数字！"); }, 2400);
+          sequence.slice().sort((x,y) => x-y).forEach(n => button(String(n), () => {
+            gameState.picks = (gameState.picks || []).concat(n);
+            if (gameState.picks.length === 5) say(`完成！你选的是 ${gameState.picks.join("、")}。再来一局试试！`);
+            else say(`已选 ${gameState.picks.length}/5 个数字`);
+          }));
+        } else if (item.kind === 4) {
+          say("你是 ❌，电脑是 ⭕。点击格子落子！");
+          gameState.cells = Array(9).fill("");
+          for (let i=0;i<9;i++) button("　", () => {
+            if (gameState.cells[i] || gameState.done) return;
+            gameState.cells[i] = "❌";
+            let winner = findWinner(gameState.cells);
+            if (!winner && gameState.cells.includes("")) {
+              const open = gameState.cells.map((v,j)=>v ? -1 : j).filter(j=>j>=0);
+              gameState.cells[open[Math.floor(Math.random()*open.length)]] = "⭕";
+              winner = findWinner(gameState.cells);
+            }
+            actions.querySelectorAll("button").forEach((btn,j) => { if (j < 9) btn.textContent = gameState.cells[j] || "　"; });
+            if (winner) { say(`${winner} 获胜！`); gameState.done = true; }
+            else if (!gameState.cells.includes("")) { say("平局！再来一局吧。"); gameState.done = true; }
+          });
+        } else if (item.kind === 5) {
+          say("看看你一分钟能打多少字！点击开始后，在输入框里打字。");
+          const input = addField(dialogBody, "打字区", "开始后在这里输入…", "textarea", "typing");
+          input.disabled = true;
+          button("开始 30 秒", () => {
+            input.disabled = false; input.value = ""; input.focus();
+            let left = 30; say(`开始！剩余 ${left} 秒`);
+            const tick = setInterval(() => {
+              left--; say(`剩余 ${left} 秒`);
+              if (!left) { clearInterval(tick); input.disabled = true; say(`时间到！你输入了 ${input.value.length} 个字符。`); }
+            }, 1000);
+          });
+        } else if (item.kind === 7) {
+          const x = Math.floor(Math.random()*20)+1, y = Math.floor(Math.random()*20)+1;
+          gameState.answer = x + y;
+          say(`快答：${x} + ${y} = ?`);
+          for (let n=Math.max(0,gameState.answer-2); n<=gameState.answer+2; n++) button(String(n), () => say(n === gameState.answer ? "答对啦，真棒！🎉" : "差一点，再开一局试试！"));
+        } else if (item.kind === 8) {
+          say("从 5 开始倒数，跟着节奏呼吸，放松一下。");
+          button("开始", () => {
+            let count = 5; say(`吸气… ${count}`);
+            const timer = setInterval(() => { count--; if (count <= 0) { clearInterval(timer); say("做得好！慢慢回到自己的节奏。"); } else say(count % 2 ? `吸气… ${count}` : `呼气… ${count}`); }, 1000);
+          });
+        } else {
+          const prompts = ["用“星星、雨伞、火车”编一个小故事","说出三种你喜欢的颜色","想一个今天可以完成的小目标","用三个词形容此刻的心情","给未来的自己留一句话"];
+          say(prompts[item.variant % prompts.length]);
+          button("换一个", () => say(prompts[Math.floor(Math.random()*prompts.length)]));
+          button("随机抽签", () => say(`🎉 灵感签：${prompts[Math.floor(Math.random()*prompts.length)]}`));
+        }
+      };
+      reset();
+      const restart = document.createElement("button");
+      restart.type = "button";
+      restart.className = "secondary";
+      restart.style.display = "block";
+      restart.style.margin = "14px auto 0";
+      restart.textContent = "重新开始";
+      restart.addEventListener("click", () => { board.style.background = ""; reset(); });
+      dialogBody.append(restart);
+    }
+    function findWinner(cells) {
+      const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+      for (const [a,b,c] of lines) if (cells[a] && cells[a] === cells[b] && cells[a] === cells[c]) return cells[a];
+      return "";
+    }
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toast.classList.remove("show"), 1800);
+    }
+    document.querySelectorAll(".tab").forEach(tab => tab.addEventListener("click", () => {
+      mode = tab.dataset.mode;
+      activeCategory = "全部";
+      favoritesOnly = false;
+      visibleCount = pageSize;
+      document.querySelectorAll(".tab").forEach(button => button.classList.toggle("active", button === tab));
+      render();
+    }));
+    searchEl.addEventListener("input", () => { visibleCount = pageSize; render(); });
+    document.getElementById("loadMore").addEventListener("click", () => { visibleCount += pageSize; render(); });
+    const glassToggle = document.getElementById("glassToggle");
+    function setGlassMode(enabled) {
+      document.body.classList.toggle("glass-mode", enabled);
+      glassToggle.setAttribute("aria-pressed", String(enabled));
+      localStorage.setItem("mark-toolbox-glass-mode", String(enabled));
+    }
+    glassToggle.addEventListener("click", () => {
+      setGlassMode(glassToggle.getAttribute("aria-pressed") !== "true");
+    });
+    setGlassMode(localStorage.getItem("mark-toolbox-glass-mode") === "true");
+    document.getElementById("favoritesShortcut").addEventListener("click", () => {
+      favoritesOnly = !favoritesOnly;
+      activeCategory = "全部";
+      visibleCount = pageSize;
+      if (favoritesOnly) {
+        const selected = [...favorites][0];
+        if (selected && selected.startsWith("game-") && mode !== "games") {
+          mode = "games";
+          document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.mode === mode));
+        } else if (selected && selected.startsWith("tool-") && mode !== "tools") {
+          mode = "tools";
+          document.querySelectorAll(".tab").forEach(tab => tab.classList.toggle("active", tab.dataset.mode === mode));
+        }
+      }
+      render();
+    });
+    function closeDialog() {
+      overlay.classList.remove("show");
+      if (gameState.timer) clearTimeout(gameState.timer);
+    }
+    document.getElementById("closeDialog").addEventListener("click", closeDialog);
+    overlay.addEventListener("click", event => { if (event.target === overlay) closeDialog(); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape" && overlay.classList.contains("show")) closeDialog(); });
+    render();
+  </script>
+</body>
+</html>
